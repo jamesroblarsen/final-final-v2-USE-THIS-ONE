@@ -1,0 +1,341 @@
+<!doctype html>
+<!--
+  I flee from your hand at a walking pace.
+  Catch me, and you have begun the race.
+  There is no finish. There is no door.
+  Drag on the grid: the years want more.
+  Then type your answer, and type it true.
+  No backspace, no question mark: doubt finds you.
+  Press Enter. The colour will judge you, unexplained.
+  Close the laptop, and think about what you've gained.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document</title>
+<style>
+  body { margin: 0; padding: 12px; background: #fffef2; color: #222; font-family: "Comic Sans MS", "Comic Sans", "Chalkboard SE", cursive; }
+  #answers { margin: 0 0 16px; }
+  #answers h1 { margin: 0; font-size: 64px; }
+  #answers p { margin: 0; font-size: 44px; line-height: 1.15; }
+  #name { font-size: 30px; font-weight: bold; }
+  #question { font-size: 22px; }
+  #mood { font-size: 15px; font-style: italic; }
+  canvas { display: block; width: 100%; max-width: 960px; height: 420px; margin: 8px 0; background: #fff; border: 2px solid #222; touch-action: none; cursor: crosshair; }
+  #answer { width: min(100%, 420px); padding: 8px; font: inherit; font-size: 20px; }
+  #judgement { min-height: 26px; font-size: 18px; }
+  #strip { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin: 10px 0; font-size: 20px; }
+  #colour { display: inline-block; width: 64px; height: 32px; border: 2px solid #222; background: #fff; }
+  #board { font-size: 16px; }
+  #credit { margin-top: 18px; font-size: 12px; color: #555; }
+  #play { position: fixed; z-index: 5; padding: 18px 36px; font: inherit; font-size: 26px; font-weight: bold; cursor: pointer; }
+  #game[hidden], #play[hidden] { display: none; }
+</style>
+</head>
+<body>
+<section id="answers"><h1>ALL THE ANSWERS</h1></section>
+<button id="play">Play</button>
+<main id="game" hidden>
+  <div id="name"></div>
+  <div id="question"></div>
+  <div id="mood"></div>
+  <canvas id="chart" width="960" height="420"></canvas>
+  <input id="answer" autocomplete="off" aria-label="Answer">
+  <div id="judgement" aria-live="polite"></div>
+  <div id="strip">
+    <span id="colour" title=""></span>
+    <span id="average"></span>
+    <span id="countdown"></span>
+    <span id="players"></span>
+  </div>
+  <div id="board"></div>
+</main>
+<p id="credit">Source: U.S. Energy Information Administration (retrieved 2026). Shares calculated by this game from published EIA series.</p>
+<script>
+const PUZZLES = {"wistful":{"title":"Share of electricity from coal in China","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[2000,2002,2004,2006,2008,2010,2012,2014,2016,2018,2020,2022,2024],"values":[78.12543898172505,77.39854493613429,78.07087725046875,79.80164734156713,78.08352194143302,76.35890379614837,74.72477644401252,72.0948982478784,67.55507806830326,65.42029941299428,61.873643267992314,59.63948894436694,56.83156412679155],"anchorIndex":6,"axis":{"min":50,"max":100}},"smug":{"title":"Share of electricity from coal in Germany","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[2000,2002,2004,2006,2008,2010,2012,2014,2016,2018,2020,2022,2024],"values":[52.80979275653566,52.385548573007256,49.841746282889446,46.711407616545316,44.15720277386458,41.960753957758875,44.20958491875294,43.96167083104692,40.52065957635853,35.962667318282854,24.35588261044162,31.680193497001138,22.269098986724053],"anchorIndex":6,"axis":{"min":0,"max":100}},"peckish":{"title":"Share of electricity from coal in India","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[2000,2002,2004,2006,2008,2010,2012,2014,2016,2018,2020,2022,2024],"values":[69.96574347536644,70.72056002322456,72.87996959571213,71.64146612348068,69.83736070893454,69.3123357160293,72.21290312089342,74.92542793760437,76.22047143881811,74.20216014799534,72.36861035831576,72.51383934706278,73.92973183382212],"anchorIndex":6,"axis":{"min":40,"max":100}},"suspicious":{"title":"Share of electricity from coal in the United Kingdom","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[2000,2002,2004,2006,2008,2010,2012,2014,2016,2018,2020,2022,2024],"values":[32.478961106477925,32.75733415148254,34.10388918073343,38.532617854542146,32.79526203356886,28.859162651371527,40.35968486025666,30.525789433293905,9.33402724517001,5.1969392789854245,2.0008063620722916,1.9254005127684135,0.7386777293604903],"anchorIndex":6,"axis":{"min":0,"max":100}},"damp":{"title":"Share of electricity from nuclear power in Germany","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[1995,1997,1999,2001,2003,2005,2007,2009,2011,2013,2015,2017,2019,2021,2023],"values":[28.91532729456113,31.287703067609122,31.101345509096195,28.471606247167973,26.468934993644698,25.694572085629073,21.407929462745486,22.04838183428367,17.43384021250525,15.060599922806393,13.95686489870596,11.427361463335757,12.218713143616752,11.501068158587929,1.3599080825111411],"anchorIndex":7,"axis":{"min":0,"max":45}},"triumphant":{"title":"Share of electricity from nuclear power in Japan","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[1980,1983,1986,1989,1992,1995,1998,2001,2004,2007,2010,2013,2016,2019,2022],"values":[14.38207343570535,17.93263864629751,24.673320684173476,22.85705678802786,24.994873656249776,29.563467895828925,31.850110008504092,30.4380315874776,25.76808721506442,24.11459023949789,24.6383002225872,0.9621907048179721,1.3985196427247932,6.307470474154338,5.181782261440551],"anchorIndex":7,"axis":{"min":0,"max":60}},"a bit much":{"title":"Share of electricity from nuclear power in the United Kingdom","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[1980,1983,1986,1989,1992,1995,1998,2001,2004,2007,2010,2013,2016,2019,2022],"values":[12.189054726368157,17.078350154600084,18.551976206686497,21.59059277213136,24.351473930470128,27.472995419867182,27.78677752526218,22.6981971708471,19.66690042983094,14.892740630355105,15.139030599928544,18.42661376170644,19.827952473126135,16.103707013581086,13.548671609228862],"anchorIndex":7,"axis":{"min":0,"max":45}},"unbothered":{"title":"Share of electricity from wind and solar in Germany","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024],"values":[8.190993281572712,11.677352974176546,12.815474039147148,13.522449492707887,15.551995705982323,18.95070885399123,18.58593798976636,22.664359286190198,24.386347042011415,28.75301133009814,32.40545620667211,28.470729367741665,32.55772207745428,40.215267681138826,42.174336910555084],"anchorIndex":7,"axis":{"min":0,"max":45}},"theatrical":{"title":"Share of electricity from wind and solar in the United Kingdom","unitLabel":"% of net electricity generation","prefix":"","suffix":"%","decimals":0,"years":[2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024],"values":[2.769668508820774,4.527503459110976,5.992392281936672,8.736501405707012,10.967041319857675,14.508830752310418,14.473083525072129,18.65167736698579,21.502917516026425,24.10101591497037,28.99467742078115,25.661855120316748,29.55951442604913,35.69466248932789,36.43961370596075],"anchorIndex":7,"axis":{"min":0,"max":40}}};
+
+const NAMES = ['Trendle', 'Trendleton', 'Wiggly Line Thing', 'Slopey', 'Mr. Line', 'Trendle Prime', 'Graph? I Hardly Know Her'];
+const $ = (id) => document.getElementById(id);
+const store = {
+  get: (k, d) => { try { const v = localStorage.getItem('handbook:' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem('handbook:' + k, JSON.stringify(v)); } catch {} },
+};
+
+// The answers go first, in large friendly letters, so nobody feels left out.
+const moods = Object.keys(PUZZLES);
+const format = (p, v) => p.prefix + v.toFixed(p.decimals) + p.suffix;
+for (const mood of moods) {
+  const p = PUZZLES[mood];
+  const line = document.createElement('p');
+  line.textContent = p.title.toUpperCase() + ': ' + p.years[p.years.length - 1] + ' = ' + format(p, p.values[p.values.length - 1]);
+  $('answers').append(line);
+}
+
+// "Daily" is how often the game gets renamed.
+const day = Math.floor(Date.now() / 86400000);
+$('name').textContent = NAMES[day % NAMES.length];
+
+// The address changes every Tuesday. 1 January 1970 was a Thursday, so Tuesdays fall on day 5 of the week.
+const tuesdays = Math.floor((day + 2) / 7);
+history.replaceState(null, '', location.pathname + '?tuesday=' + tuesdays);
+
+// Success is your own page opens, times 1,000, rounded up.
+const opens = store.get('opens', 0) + 1;
+store.set('opens', opens);
+$('players').textContent = (Math.ceil((opens * 1000) / 5000) * 5000).toLocaleString('en-US') + ' players';
+
+// The sound is a kazoo. Browsers wait for a first click or key before allowing it.
+let audio = null;
+function kazoo(notes) {
+  if (!audio) return;
+  let t = audio.currentTime;
+  for (const [freq, len] of notes) {
+    const osc = audio.createOscillator();
+    const wobble = audio.createOscillator();
+    const wobbleDepth = audio.createGain();
+    const filter = audio.createBiquadFilter();
+    const gain = audio.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    wobble.frequency.value = 7;
+    wobbleDepth.gain.value = freq * 0.025;
+    filter.type = 'bandpass';
+    filter.frequency.value = 1300;
+    filter.Q.value = 2;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.09, t + 0.03);
+    gain.gain.setValueAtTime(0.09, t + len - 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    wobble.connect(wobbleDepth).connect(osc.frequency);
+    osc.connect(filter).connect(gain).connect(audio.destination);
+    osc.start(t);
+    wobble.start(t);
+    osc.stop(t + len);
+    wobble.stop(t + len);
+    t += len;
+  }
+}
+const wakeKazoo = () => {
+  if (audio) return;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (Ctx) audio = new Ctx();
+};
+addEventListener('pointerdown', wakeKazoo);
+addEventListener('keydown', wakeKazoo);
+
+// The Play button moves away from the cursor at a gentle walking pace.
+const play = $('play');
+let px = innerWidth / 2 - 70;
+let py = Math.min(innerHeight - 90, 260);
+let cx = -9999;
+let cy = -9999;
+let lastFrame = performance.now();
+let lastSquawk = 0;
+addEventListener('pointermove', (e) => { cx = e.clientX; cy = e.clientY; });
+function walk(now) {
+  if (play.hidden) return;
+  const dt = Math.min(0.1, (now - lastFrame) / 1000);
+  lastFrame = now;
+  const w = play.offsetWidth;
+  const h = play.offsetHeight;
+  const dx = px + w / 2 - cx;
+  const dy = py + h / 2 - cy;
+  const dist = Math.hypot(dx, dy) || 1;
+  if (dist < 170) {
+    const pace = 90; // Pixels per second. Gentle, and catchable by anyone who commits.
+    px += (dx / dist) * pace * dt;
+    py += (dy / dist) * pace * dt;
+    if (now - lastSquawk > 2500) {
+      kazoo([[520, 0.09], [660, 0.09]]);
+      lastSquawk = now;
+    }
+  }
+  px = Math.max(4, Math.min(innerWidth - w - 4, px));
+  py = Math.max(4, Math.min(innerHeight - h - 4, py));
+  play.style.left = px + 'px';
+  play.style.top = py + 'px';
+  requestAnimationFrame(walk);
+}
+requestAnimationFrame(walk);
+
+// The game. It does not stop.
+const canvas = $('chart');
+const ctx = canvas.getContext('2d');
+const M = { left: 62, right: 24, top: 18, bottom: 34 };
+let order = 0;
+let served = 0;
+let mood = '';
+let puzzle = null;
+let guess = [];
+let revealing = false;
+let drawing = false;
+let doubted = false;
+
+const xOf = (i) => M.left + (i * (canvas.width - M.left - M.right)) / (puzzle.years.length - 1);
+const yOf = (v) => M.top + ((puzzle.axis.max - v) * (canvas.height - M.top - M.bottom)) / (puzzle.axis.max - puzzle.axis.min);
+
+function render(showActual) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = '15px "Comic Sans MS", cursive';
+  ctx.fillStyle = '#222';
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(M.left, M.top);
+  ctx.lineTo(M.left, canvas.height - M.bottom);
+  ctx.lineTo(canvas.width - M.right, canvas.height - M.bottom);
+  ctx.stroke();
+  ctx.textAlign = 'right';
+  ctx.fillText(format(puzzle, puzzle.axis.max), M.left - 6, M.top + 6);
+  ctx.fillText(format(puzzle, puzzle.axis.min), M.left - 6, canvas.height - M.bottom);
+  ctx.textAlign = 'left';
+  ctx.fillText(puzzle.years[0], M.left, canvas.height - 10);
+  ctx.textAlign = 'right';
+  ctx.fillText(puzzle.years[puzzle.years.length - 1], canvas.width - M.right, canvas.height - 10);
+  const plot = (values, colour) => {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    let started = false;
+    values.forEach((v, i) => {
+      if (v === null) return;
+      if (started) ctx.lineTo(xOf(i), yOf(v));
+      else ctx.moveTo(xOf(i), yOf(v));
+      started = true;
+    });
+    ctx.stroke();
+  };
+  plot(guess, '#d6336c');
+  if (showActual) plot(puzzle.values, '#222');
+  ctx.fillStyle = '#222';
+  ctx.beginPath();
+  ctx.arc(xOf(puzzle.anchorIndex), yOf(puzzle.values[puzzle.anchorIndex]), 7, 0, 7);
+  ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.fillText(puzzle.years[puzzle.anchorIndex] + ': ' + format(puzzle, puzzle.values[puzzle.anchorIndex]), xOf(puzzle.anchorIndex), yOf(puzzle.values[puzzle.anchorIndex]) - 14);
+}
+
+function nextPuzzle() {
+  mood = moods[order % moods.length];
+  // Out of puzzles: reuse the first one, and add an exclamation mark.
+  const shouts = Math.floor(served / moods.length);
+  order += 1;
+  served += 1;
+  puzzle = PUZZLES[mood];
+  guess = puzzle.values.map((v, i) => (i === puzzle.anchorIndex ? v : null));
+  revealing = false;
+  doubted = false;
+  $('answer').value = '';
+  $('question').textContent = puzzle.title + ' (' + puzzle.unitLabel + ')' + '!'.repeat(shouts);
+  $('mood').textContent = 'This puzzle is feeling ' + mood + '.';
+  $('judgement').textContent = '';
+  render(false);
+}
+
+function pointAt(e) {
+  const box = canvas.getBoundingClientRect();
+  const x = ((e.clientX - box.left) * canvas.width) / box.width;
+  const y = ((e.clientY - box.top) * canvas.height) / box.height;
+  const n = puzzle.years.length - 1;
+  const i = Math.max(0, Math.min(n, Math.round(((x - M.left) * n) / (canvas.width - M.left - M.right))));
+  const v = puzzle.axis.max - ((y - M.top) * (puzzle.axis.max - puzzle.axis.min)) / (canvas.height - M.top - M.bottom);
+  if (i !== puzzle.anchorIndex) guess[i] = Math.max(puzzle.axis.min, Math.min(puzzle.axis.max, v));
+  render(false);
+}
+canvas.addEventListener('pointerdown', (e) => {
+  if (revealing) return;
+  drawing = true;
+  canvas.setPointerCapture(e.pointerId);
+  pointAt(e);
+});
+canvas.addEventListener('pointermove', (e) => { if (drawing && !revealing) pointAt(e); });
+canvas.addEventListener('pointerup', () => { drawing = false; });
+canvas.addEventListener('pointercancel', () => { drawing = false; });
+
+// Accuracy is real, though nobody is told that. Columns left blank count as far off.
+function accuracy() {
+  let total = 0;
+  let count = 0;
+  puzzle.values.forEach((v, i) => {
+    if (i === puzzle.anchorIndex) return;
+    count += 1;
+    if (guess[i] === null) return;
+    const error = Math.abs(guess[i] - v) / (puzzle.axis.max - puzzle.axis.min);
+    total += Math.max(0, 1 - (error / 0.25) ** 2);
+  });
+  return (100 * total) / count;
+}
+
+function roman(n) {
+  if (n <= 0) return 'N';
+  const parts = [[100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+  let out = '';
+  for (const [value, mark] of parts) while (n >= value) { out += mark; n -= value; }
+  return out;
+}
+
+let played = store.get('played', 0);
+let totalScore = store.get('total', 0);
+function showStanding() {
+  $('average').textContent = played ? roman(Math.round(totalScore / played)) : 'N';
+  // Everyone keeps their own leaderboard, and everyone is ranked first.
+  $('board').textContent = '1st: You. 1st: Everyone else. Rounds played: ' + roman(played) + '.';
+}
+showStanding();
+
+$('answer').addEventListener('keydown', (e) => {
+  if (e.key === 'Backspace' || e.key === 'Delete') doubted = true;
+  if (e.key !== 'Enter' || revealing) return;
+  const text = $('answer').value.trim();
+  if (!text || doubted || text.endsWith('?')) {
+    $('judgement').textContent = text ? 'The page sensed doubt. Start over, and mean it.' : 'Silence is not confidence.';
+    $('answer').value = '';
+    doubted = false;
+    kazoo([[300, 0.18], [220, 0.32]]);
+    return;
+  }
+  // Accept any answer typed with confidence.
+  const score = accuracy();
+  played += 1;
+  totalScore += score;
+  store.set('played', played);
+  store.set('total', totalScore);
+  $('colour').style.background = 'hsl(' + Math.round(score * 2.8) + ', 80%, 55%)';
+  $('judgement').textContent = 'Accepted.';
+  showStanding();
+  kazoo([[523, 0.12], [659, 0.12], [784, 0.26]]);
+  revealing = true;
+  render(true);
+  setTimeout(nextPuzzle, 1800);
+});
+
+// The puzzle changes every 11 minutes, or whenever the page feels like it.
+setInterval(() => { if (puzzle && !revealing && !drawing) nextPuzzle(); }, 11 * 60 * 1000);
+setInterval(() => { if (puzzle && !revealing && !drawing && Math.random() < 0.003) nextPuzzle(); }, 1000);
+
+// A countdown to nothing in particular. At zero it restarts, slightly slower.
+let tick = 1000;
+let left = 30;
+function countDown() {
+  left -= 1;
+  if (left < 0) {
+    left = 30;
+    tick *= 1.05;
+  }
+  $('countdown').textContent = left + '...';
+  setTimeout(countDown, tick);
+}
+countDown();
+
+play.addEventListener('click', () => {
+  wakeKazoo();
+  kazoo([[392, 0.1], [523, 0.1], [659, 0.1], [784, 0.3]]);
+  play.hidden = true;
+  $('game').hidden = false;
+  nextPuzzle();
+  $('game').scrollIntoView();
+});
+</script>
+</body>
+</html>
